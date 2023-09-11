@@ -35,6 +35,8 @@ class GFPGANer():
 
         # initialize model
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # if self.device == 'cpu':
+        #     self.device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
         # initialize the GFP-GAN
         if arch == 'clean':
             self.gfpgan = GFPGANv1Clean(

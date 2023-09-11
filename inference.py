@@ -30,6 +30,8 @@ args = options()
 
 def main():    
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device == 'cpu':
+        device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     print('[Info] Using {} for inference.'.format(device))
     os.makedirs(os.path.join('temp', args.tmp_dir), exist_ok=True)
 
@@ -277,6 +279,10 @@ def main():
 
 # frames:256x256, full_frames: original size
 def datagen(frames, mels, full_frames, frames_pil, cox):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device == 'cpu':
+        device = 'mps' if torch.backends.mps.is_available() else 'cpu'
+
     img_batch, mel_batch, frame_batch, coords_batch, ref_batch, full_frame_batch = [], [], [], [], [], []
     base_name = args.face.split('/')[-1]
     refs = []
@@ -287,7 +293,7 @@ def datagen(frames, mels, full_frames, frames_pil, cox):
     fr_pil = [Image.fromarray(frame) for frame in frames]
     lms = kp_extractor.extract_keypoint(fr_pil, 'temp/'+base_name+'x12_landmarks.txt')
     frames_pil = [ (lm, frame) for frame,lm in zip(fr_pil, lms)] # frames is the croped version of modified face
-    crops, orig_images, quads  = crop_faces(image_size, frames_pil, scale=1.0, use_fa=True)
+    crops, orig_images, quads  = crop_faces(image_size, frames_pil, scale=1.0, use_fa=True, device=device)
     inverse_transforms = [calc_alignment_coefficients(quad + 0.5, [[0, 0], [0, image_size], [image_size, image_size], [image_size, 0]]) for quad in quads]
     del kp_extractor.detector
 

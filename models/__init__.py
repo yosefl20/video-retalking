@@ -2,10 +2,13 @@ import torch
 from models.DNet import DNet
 from models.LNet import LNet
 from models.ENet import ENet
-
+import torch
 
 def _load(checkpoint_path):
-    checkpoint = torch.load(checkpoint_path)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device == 'cpu':
+        device = 'mps' if torch.backends.mps.is_available() else 'cpu'
+    checkpoint = torch.load(checkpoint_path, map_location=torch.device(device))
     return checkpoint
 
 def load_checkpoint(path, model):
