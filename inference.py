@@ -35,9 +35,9 @@ def main():
     print('[Info] Using {} for inference.'.format(device))
     os.makedirs(os.path.join('temp', args.tmp_dir), exist_ok=True)
 
-    enhancer = FaceEnhancement(base_dir='checkpoints', size=512, model='GPEN-BFR-512', use_sr=False, \
-                               sr_model='rrdb_realesrnet_psnr', channel_multiplier=2, narrow=1, device=device)
-    restorer = GFPGANer(model_path='checkpoints/GFPGANv1.3.pth', upscale=1, arch='clean', \
+    enhancer = FaceEnhancement(base_dir='checkpoints', size=512, model='GPEN-BFR-512', use_sr=True, \
+                               sr_model='realesrnet', channel_multiplier=2, narrow=1, device=device)
+    restorer = GFPGANer(model_path='checkpoints/GFPGANv1.3.pth', upscale=2, arch='clean', \
                         channel_multiplier=2, bg_upsampler=None)
 
     base_name = args.face.split('/')[-1]
@@ -53,6 +53,7 @@ def main():
         fps = video_stream.get(cv2.CAP_PROP_FPS)
 
         full_frames = []
+        i = 0
         while True:
             still_reading, frame = video_stream.read()
             if not still_reading:
@@ -63,6 +64,8 @@ def main():
             if y2 == -1: y2 = frame.shape[0]
             frame = frame[y1:y2, x1:x2]
             full_frames.append(frame)
+            print(f"frame: {i}")
+            i += 1
 
     print ("[Step 0] Number of frames available for inference: "+str(len(full_frames)))
     # face detection & cropping, cropping the first frame as the style of FFHQ
@@ -205,6 +208,7 @@ def main():
     gen = datagen(imgs_enhanced.copy(), mel_chunks, full_frames, None, (oy1,oy2,ox1,ox2))
 
     frame_h, frame_w = full_frames[0].shape[:-1]
+    # out = cv2.VideoWriter('temp/{}/result.mp4'.format(args.tmp_dir), cv2.VideoWriter_fourcc(*'avc1'), fps, (frame_w, frame_h))
     out = cv2.VideoWriter('temp/{}/result.mp4'.format(args.tmp_dir), cv2.VideoWriter_fourcc(*'mp4v'), fps, (frame_w, frame_h))
     
     if args.up_face != 'original':
@@ -244,7 +248,8 @@ def main():
         
         pred = pred.cpu().numpy().transpose(0, 2, 3, 1) * 255.
 
-        torch.cuda.empty_cache()
+        if device == 'cuda':
+            torch.cuda.empty_cache()
         for p, f, xf, c in zip(pred, frames, f_frames, coords):
             y1, y2, x1, x2 = c
             p = cv2.resize(p.astype(np.uint8), (x2 - x1, y2 - y1))
@@ -272,7 +277,7 @@ def main():
     
     if not os.path.isdir(os.path.dirname(args.outfile)):
         os.makedirs(os.path.dirname(args.outfile), exist_ok=True)
-    command = 'ffmpeg -loglevel error -y -i {} -i {} -strict -2 -q:v 1 {}'.format(args.audio, 'temp/{}/result.mp4'.format(args.tmp_dir), args.outfile)
+    command = 'ffmpeg -loglevel error -y -i {} -i {} -strict -2 -q:v 1 -ar 44100 {}'.format(args.audio, 'temp/{}/result.mp4'.format(args.tmp_dir), args.outfile)
     subprocess.call(command, shell=platform.system() != 'Windows')
     print('outfile:', args.outfile)
 

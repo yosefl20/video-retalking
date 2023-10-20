@@ -6,7 +6,7 @@ from face_parse.face_parsing import FaceParse
 from face_detect.retinaface_detection import RetinaFaceDetection
 from face_parse.face_parsing import FaceParse
 from face_model.face_gan import FaceGAN
-# from sr_model.real_esrnet import RealESRNet
+from .sr_model.real_esrnet import RealESRNet
 from align_faces import warp_and_crop_face, get_reference_facial_points
 from utils.inference_utils import Laplacian_Pyramid_Blending_with_mask
 
@@ -14,8 +14,8 @@ class FaceEnhancement(object):
     def __init__(self, base_dir='./', size=512, model=None, use_sr=True, sr_model=None, channel_multiplier=2, narrow=1, device='cuda'):
         self.facedetector = RetinaFaceDetection(base_dir, device)
         self.facegan = FaceGAN(base_dir, size, model, channel_multiplier, narrow, device=device)
-        # self.srmodel =  RealESRNet(base_dir, sr_model, device=device)
-        self.srmodel=None
+        self.srmodel =  RealESRNet(base_dir, sr_model, device=device)
+        # self.srmodel=None
         self.faceparser = FaceParse(base_dir, device=device)
         self.use_sr = use_sr
         self.size = size
@@ -57,7 +57,8 @@ class FaceEnhancement(object):
         orig_faces, enhanced_faces = [], []
         height, width = img.shape[:2]
         full_mask = np.zeros((height, width), dtype=np.float32)
-        full_img = np.zeros(ori_img.shape, dtype=np.uint8)
+        # full_img = np.zeros(ori_img.shape, dtype=np.uint8)
+        full_img = np.zeros(img.shape, dtype=np.uint8)
 
         for i, (faceb, facial5points) in enumerate(zip(facebs, landms)):
             if faceb[4]<self.threshold: continue
@@ -107,6 +108,10 @@ class FaceEnhancement(object):
                 tmp_img = cv2.warpAffine(of, tfm_inv, (width, height), flags=3)
 
             mask = tmp_mask - full_mask
+            # print(mask.shape)
+            # print(full_img.shape)
+            # print(tmp_img.shape)
+            # print(np.where(mask>0))
             full_mask[np.where(mask>0)] = tmp_mask[np.where(mask>0)]
             full_img[np.where(mask>0)] = tmp_img[np.where(mask>0)]
 
