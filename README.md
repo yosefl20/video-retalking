@@ -50,6 +50,7 @@ conda create -n video_retalking python=3.8
 conda activate video_retalking
 
 conda install ffmpeg
+conda install -c conda-forge opencv
 
 # Please follow the instructions from https://pytorch.org/get-started/previous-versions/
 # This installation command only works on CUDA 11.1
